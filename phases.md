@@ -1,6 +1,6 @@
 # Project Phases
 
-## Current Phase: Phase 1
+## Current Phase: Phase 2
 
 ---
 
@@ -18,11 +18,11 @@
 - Light/dark mode toggle functional
 
 **Exit Criteria**:
-- [ ] Admin can add a YouTube video via URL
-- [ ] Video appears on Home page
-- [ ] Clicking video opens Watch page with working player
-- [ ] User can sign up and log in
-- [ ] Theme toggle works (light ↔ dark)
+- [x] Admin can add a YouTube video via URL
+- [x] Video appears on Home page
+- [x] Clicking video opens Watch page with working player
+- [x] User can sign up and log in
+- [x] Theme toggle works (light ↔ dark)
 
 ---
 
