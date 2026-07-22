@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <a href="/search.html">Search</a>
+      <a href="#" id="auth-link">Login</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="section-header">
+      <h1>Videos</h1>
+      <button class="btn btn-primary" id="add-video-btn" style="display:none;">+ Add Video</button>
+    </div>
+
+    <div id="add-video-form" class="hidden" style="margin-bottom: 24px;">
+      <div class="comment-composer">
+        <div class="form-group">
+          <label>YouTube URL</label>
+          <input type="text" id="video-url" placeholder="https://www.youtube.com/watch?v=...">
+        </div>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="video-title" placeholder="Video title">
+        </div>
+        <button class="btn btn-primary" onclick="addVideo()">Add Video</button>
+      </div>
+    </div>
+
+    <div id="video-grid" class="video-grid"></div>
+    <div id="empty-state" class="empty-state hidden">
+      <h3>No videos yet</h3>
+      <p>Add a YouTube video to get started.</p>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    initTheme();
+    updateNavAuth();
+
+    const addBtn = document.getElementById('add-video-btn');
+    if (isLoggedIn()) {
+      addBtn.style.display = 'inline-flex';
+    }
+
+    async function loadVideos() {
+      try {
+        const videos = await apiGet('/videos');
+        const grid = document.getElementById('video-grid');
+        const empty = document.getElementById('empty-state');
+
+        if (videos.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        grid.innerHTML = videos.map(v => `
+          <a href="/watch.html?id=${v.id}" class="video-card" style="text-decoration:none;">
+            <div class="video-card-thumbnail">
+              <img src="${getYouTubeThumbnail(v.youtube_video_id)}" alt="${v.title}">
+            </div>
+            <div class="video-card-info">
+              <div class="video-card-title">${v.title}</div>
+              <div class="video-card-meta">Added ${formatDate(v.created_at)}</div>
+            </div>
+          </a>
+        `).join('');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function addVideo() {
+      const url = document.getElementById('video-url').value.trim();
+      const title = document.getElementById('video-title').value.trim();
+
+      if (!url || !title) {
+        showToast('Please fill in all fields', 'error');
+        return;
+      }
+
+      try {
+        await apiPost('/videos', { youtube_url: url, title });
+        document.getElementById('video-url').value = '';
+        document.getElementById('video-title').value = '';
+        document.getElementById('add-video-form').classList.add('hidden');
+        showToast('Video added!');
+        loadVideos();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    addBtn.addEventListener('click', () => {
+      document.getElementById('add-video-form').classList.toggle('hidden');
+    });
+
+    loadVideos();
+  </script>
+</body>
+</html>
