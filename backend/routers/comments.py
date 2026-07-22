@@ -51,7 +51,7 @@ def get_comments(video_id: str):
         supabase.table("comments")
         .select("*")
         .eq("video_id", video_id)
-        .is("parent_comment_id", "null")
+        .is_("parent_comment_id", "null")
         .order("created_at", desc=True)
         .execute()
     )
