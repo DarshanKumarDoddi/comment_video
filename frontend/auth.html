@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="auth-container">
+      <h2 id="auth-title">Sign Up</h2>
+
+      <div id="signup-fields">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="Your username">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Min 6 characters">
+      </div>
+
+      <button class="btn btn-primary" style="width: 100%;" id="auth-btn" onclick="handleAuth()">Sign Up</button>
+
+      <div class="auth-toggle">
+        <span id="toggle-text">Already have an account?</span>
+        <a href="#" id="toggle-link" onclick="toggleMode(event)">Login</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    initTheme();
+
+    let isSignup = true;
+
+    function toggleMode(e) {
+      e.preventDefault();
+      isSignup = !isSignup;
+      document.getElementById('auth-title').textContent = isSignup ? 'Sign Up' : 'Login';
+      document.getElementById('auth-btn').textContent = isSignup ? 'Sign Up' : 'Login';
+      document.getElementById('signup-fields').style.display = isSignup ? 'block' : 'none';
+      document.getElementById('toggle-text').textContent = isSignup ? 'Already have an account?' : "Don't have an account?";
+      document.getElementById('toggle-link').textContent = isSignup ? 'Login' : 'Sign Up';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showToast('Please fill in all fields', 'error');
+        return;
+      }
+
+      try {
+        if (isSignup) {
+          const username = document.getElementById('username').value.trim();
+          if (!username) {
+            showToast('Username is required', 'error');
+            return;
+          }
+          const data = await apiPost('/auth/signup', { email, password, username });
+          setSession({ id: data.id, email: data.email, username: data.username }, 'signup-token');
+          showToast('Account created! Please login.');
+          toggleMode(new Event('click'));
+        } else {
+          const data = await apiPost('/auth/login', { email, password });
+          setSession(data.user, data.access_token);
+          showToast('Logged in!');
+          window.location.href = '/';
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
