@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch - CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <a href="/search.html">Search</a>
+      <a href="#" id="auth-link">Login</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="watch-layout">
+      <div>
+        <div id="player" class="player-container"></div>
+        <div style="padding: 16px 0;">
+          <h1 id="video-title" style="font-size: 22px; font-weight: 600;"></h1>
+          <p id="video-meta" style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;"></p>
+        </div>
+
+        <div class="comment-section">
+          <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Comments</h2>
+
+          <div id="comment-composer" class="comment-composer hidden">
+            <div class="form-group">
+              <textarea id="comment-text" rows="3" placeholder="Add a comment..."></textarea>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-primary" onclick="postComment()">Comment</button>
+              <label style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="pin-timestamp"> Pin to timestamp
+              </label>
+            </div>
+          </div>
+
+          <div id="comments-list"></div>
+          <div id="comments-empty" class="empty-state hidden">
+            <h3>No comments yet</h3>
+            <p>Be the first to comment!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    initTheme();
+    updateNavAuth();
+
+    const videoId = new URLSearchParams(window.location.search).get('id');
+    let player = null;
+    let videoData = null;
+
+    if (!videoId) {
+      window.location.href = '/';
+    }
+
+    if (isLoggedIn()) {
+      document.getElementById('comment-composer').classList.remove('hidden');
+    }
+
+    // YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+
+    window.onYouTubeIframeAPIReady = function () {
+      loadVideo();
+    };
+
+    async function loadVideo() {
+      try {
+        videoData = await apiGet(`/videos/${videoId}`);
+        document.getElementById('video-title').textContent = videoData.title;
+        document.getElementById('video-meta').textContent = `Added ${formatDate(videoData.created_at)}`;
+
+        player = new YT.Player('player', {
+          videoId: videoData.youtube_video_id,
+          events: {
+            onReady: loadComments,
+          },
+        });
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const comments = await apiGet(`/videos/${videoId}/comments`);
+        const list = document.getElementById('comments-list');
+        const empty = document.getElementById('comments-empty');
+
+        if (comments.length === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        list.innerHTML = renderComments(comments);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderComments(comments) {
+      return comments.map(c => `
+        <div class="comment-item">
+          <div class="comment-header">
+            <div class="comment-avatar">${(c.author_name || 'U')[0].toUpperCase()}</div>
+            <span class="comment-author">${c.author_name || 'User'}</span>
+            <span class="comment-time">${formatDate(c.created_at)}</span>
+            ${c.timestamp_seconds != null ? `<span style="font-size:12px; color:var(--primary); cursor:pointer;" onclick="seekTo(${c.timestamp_seconds})">${formatTime(c.timestamp_seconds)}</span>` : ''}
+          </div>
+          <div class="comment-body">${c.text_content || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function seekTo(seconds) {
+      if (player && player.seekTo) {
+        player.seekTo(seconds, true);
+        player.playVideo();
+      }
+    }
+
+    async function postComment() {
+      const text = document.getElementById('comment-text').value.trim();
+      if (!text) {
+        showToast('Comment cannot be empty', 'error');
+        return;
+      }
+
+      const pinTimestamp = document.getElementById('pin-timestamp').checked;
+      const timestamp = pinTimestamp && player && player.getCurrentTime
+        ? Math.floor(player.getCurrentTime())
+        : null;
+
+      try {
+        await apiPost('/comments', {
+          video_id: videoId,
+          text_content: text,
+          timestamp_seconds: timestamp,
+        });
+        document.getElementById('comment-text').value = '';
+        showToast('Comment posted!');
+        loadComments();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
