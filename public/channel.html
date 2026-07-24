@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Channel - CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <a href="/search.html">Search</a>
+      <a href="#" id="auth-link">Login</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="section-header">
+      <h1>Channel</h1>
+    </div>
+
+    <div class="empty-state">
+      <h3>Channel page coming in Phase 2</h3>
+      <p>This page will show videos grouped by channel.</p>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script>
+    initTheme();
+    updateNavAuth();
+  </script>
+</body>
+</html>

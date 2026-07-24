@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch - CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <a href="/search.html">Search</a>
+      <a href="#" id="auth-link">Login</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="watch-layout">
+      <div>
+        <div id="player" class="player-container"></div>
+        <div style="padding: 16px 0;">
+          <h1 id="video-title" style="font-size: 22px; font-weight: 600;"></h1>
+          <p id="video-meta" style="font-size: 14px; color: var(--text-secondary); margin-top: 4px;"></p>
+        </div>
+
+        <div class="comment-section">
+          <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
+            Comments <span id="comment-count" style="font-weight: 400; color: var(--text-secondary); font-size: 14px;"></span>
+          </h2>
+
+          <div id="comment-composer" class="comment-composer hidden">
+            <div class="form-group">
+              <textarea id="comment-text" rows="3" placeholder="Add a comment..."></textarea>
+            </div>
+            <div id="video-upload-area" style="margin-bottom: 8px;">
+              <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                📹 Attach Video
+                <input type="file" accept="video/*" id="comment-video-input" style="display:none;" onchange="handleCommentVideo(this)">
+              </label>
+              <span id="video-upload-status" style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;"></span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-primary" onclick="postComment()">Comment</button>
+              <label style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
+                <input type="checkbox" id="pin-timestamp"> Pin to timestamp
+              </label>
+            </div>
+          </div>
+
+          <div id="comments-list"></div>
+          <div id="comments-empty" class="empty-state hidden">
+            <h3>No comments yet</h3>
+            <p>Be the first to comment!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/comments.js"></script>
+  <script>
+    initTheme();
+    updateNavAuth();
+
+    const videoId = new URLSearchParams(window.location.search).get('id');
+    const youtubeVideoId = new URLSearchParams(window.location.search).get('yt');
+    const currentVideoId = videoId;
+    let currentYouTubeId = null;
+    let pendingCommentVideo = null;
+
+    if (!videoId) {
+      window.location.href = '/';
+    }
+
+    if (isLoggedIn()) {
+      document.getElementById('comment-composer').classList.remove('hidden');
+    }
+
+    function handleCommentVideo(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('video/')) {
+        showToast('Please select a video file', 'error');
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        showToast('Video too large (max 50MB)', 'error');
+        return;
+      }
+
+      pendingCommentVideo = file;
+      document.getElementById('video-upload-status').textContent = file.name;
+    }
+
+    async function loadVideo() {
+      if (youtubeVideoId) {
+        currentYouTubeId = youtubeVideoId;
+        document.getElementById('video-title').textContent = 'YouTube Video';
+        document.getElementById('video-meta').textContent = 'Embedded video';
+        document.getElementById('player').innerHTML =
+          `<iframe src="https://www.youtube.com/embed/${youtubeVideoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width:100%;height:100%;"></iframe>`;
+        loadComments();
+        return;
+      }
+
+      try {
+        const videoData = await apiGet(`/videos/${videoId}`);
+        currentYouTubeId = videoData.youtube_video_id;
+        document.getElementById('video-title').textContent = videoData.title;
+        document.getElementById('video-meta').textContent = `Added ${formatDate(videoData.created_at)}`;
+        document.getElementById('player').innerHTML =
+          `<iframe src="https://www.youtube.com/embed/${videoData.youtube_video_id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width:100%;height:100%;"></iframe>`;
+        loadComments();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function loadComments() {
+      try {
+        const comments = await apiGet(`/videos/${videoId}/comments`);
+        const list = document.getElementById('comments-list');
+        const empty = document.getElementById('comments-empty');
+        const countEl = document.getElementById('comment-count');
+
+        if (comments.length === 0) {
+          list.innerHTML = '';
+          empty.classList.remove('hidden');
+          countEl.textContent = '';
+          return;
+        }
+
+        empty.classList.add('hidden');
+        countEl.textContent = `(${comments.length})`;
+
+        const tree = buildCommentTree(comments);
+        list.innerHTML = renderCommentTree(tree);
+      } catch (err) {
+        document.getElementById('comments-empty').classList.remove('hidden');
+      }
+    }
+
+    async function postComment() {
+      const text = document.getElementById('comment-text').value.trim();
+      if (!text && !pendingCommentVideo) {
+        showToast('Comment cannot be empty', 'error');
+        return;
+      }
+
+      let videoUrl = null;
+      if (pendingCommentVideo) {
+        document.getElementById('video-upload-status').textContent = 'Uploading...';
+        try {
+          const formData = new FormData();
+          formData.append('file', pendingCommentVideo);
+          const uploadData = await apiUpload('/upload/video-comment', formData);
+          videoUrl = uploadData.url;
+        } catch (err) {
+          showToast('Video upload failed: ' + err.message, 'error');
+          document.getElementById('video-upload-status').textContent = 'Upload failed';
+          return;
+        }
+      }
+
+      const pinTimestamp = document.getElementById('pin-timestamp').checked;
+      const timestamp = pinTimestamp ? null : null;
+
+      try {
+        await apiPost('/comments', {
+          video_id: videoId,
+          text_content: text || null,
+          video_url: videoUrl,
+          timestamp_seconds: timestamp,
+        });
+        document.getElementById('comment-text').value = '';
+        document.getElementById('pin-timestamp').checked = false;
+        document.getElementById('comment-video-input').value = '';
+        document.getElementById('video-upload-status').textContent = '';
+        pendingCommentVideo = null;
+        showToast('Comment posted!');
+        loadComments();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    loadVideo();
+  </script>
+</body>
+</html>

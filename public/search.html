@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search - CommentVideo</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">CommentVideo</a>
+    <div class="navbar-links">
+      <a href="/">Home</a>
+      <a href="#" id="auth-link">Login</a>
+      <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()"></button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="Search videos..." onkeydown="if(event.key==='Enter') searchVideos()">
+      <button class="btn btn-primary" onclick="searchVideos()">Search</button>
+    </div>
+
+    <div id="search-results" class="video-grid"></div>
+    <div id="empty-state" class="empty-state hidden">
+      <h3>No results found</h3>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/utils.js"></script>
+  <script>
+    initTheme();
+    updateNavAuth();
+
+    async function searchVideos() {
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+      const grid = document.getElementById('search-results');
+      const empty = document.getElementById('empty-state');
+
+      if (!query) {
+        grid.innerHTML = '';
+        empty.classList.add('hidden');
+        return;
+      }
+
+      try {
+        const videos = await apiGet('/videos');
+        const filtered = videos.filter(v => v.title.toLowerCase().includes(query));
+
+        if (filtered.length === 0) {
+          grid.innerHTML = '';
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        empty.classList.add('hidden');
+        grid.innerHTML = filtered.map(v => `
+          <a href="/watch.html?id=${v.id}" class="video-card" style="text-decoration:none;">
+            <div class="video-card-thumbnail">
+              <img src="${getYouTubeThumbnail(v.youtube_video_id)}" alt="${v.title}">
+            </div>
+            <div class="video-card-info">
+              <div class="video-card-title">${v.title}</div>
+              <div class="video-card-meta">Added ${formatDate(v.created_at)}</div>
+            </div>
+          </a>
+        `).join('');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html>
