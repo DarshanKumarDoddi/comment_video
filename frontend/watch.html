@@ -63,6 +63,7 @@
     updateNavAuth();
 
     const videoId = new URLSearchParams(window.location.search).get('id');
+    const youtubeVideoId = new URLSearchParams(window.location.search).get('yt');
     const currentVideoId = videoId;
     let player = null;
     let videoData = null;
@@ -84,6 +85,20 @@
     };
 
     async function loadVideo() {
+      if (youtubeVideoId) {
+        videoData = { youtube_video_id: youtubeVideoId, title: 'YouTube Video', created_at: new Date().toISOString() };
+        document.getElementById('video-title').textContent = videoData.title;
+        document.getElementById('video-meta').textContent = 'Embedded video';
+
+        player = new YT.Player('player', {
+          videoId: youtubeVideoId,
+          events: {
+            onReady: loadComments,
+          },
+        });
+        return;
+      }
+
       try {
         videoData = await apiGet(`/videos/${videoId}`);
         document.getElementById('video-title').textContent = videoData.title;
@@ -120,7 +135,7 @@
         const tree = buildCommentTree(comments);
         list.innerHTML = renderCommentTree(tree);
       } catch (err) {
-        showToast(err.message, 'error');
+        document.getElementById('comments-empty').classList.remove('hidden');
       }
     }
 
