@@ -14,15 +14,16 @@
 | 2026-07-22 | Phase 1 — Frontend: Home, Watch, Auth, Search, Channel pages with CSS |
 | 2026-07-22 | Phase 1 — Theme toggle (light/dark) working |
 | 2026-07-22 | Phase 1 — All files committed and pushed to GitHub |
-| 2026-07-22 | Tech stack confirmed: FastAPI + HTML/Tailwind + Supabase + Cloudinary + YouTube IFrame |
-| 2026-07-22 | Target users confirmed: Admin + testing team + clients (closed group) |
-| 2026-07-22 | Auth deferred to later phase |
+| 2026-07-22 | Phase 2 — Threaded comments: tree builder, reply form, like endpoint |
+| 2026-07-22 | Phase 2 — Watch page updated with threaded rendering + author names |
+| 2026-07-22 | Phase 2 — CSS for reply composer, timestamp badges, indent styling |
+| 2026-07-22 | CI/CD — Vercel config, GitHub Actions workflow, .gitignore |
 
 ## In Progress
 
 | Item | File/Module | Status |
 |---|---|---|
-| Phase 1 — Base App | Backend + Frontend | Code complete, pushed to GitHub |
+| Phase 2 — Text Comments | Backend + Frontend | Code complete, pushed to GitHub |
 | Supabase DB setup | Pending | User needs to create project + tables |
 | Cloudinary setup | Pending | User needs to create account |
 

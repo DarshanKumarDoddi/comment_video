@@ -1,6 +1,6 @@
 # Project Phases
 
-## Current Phase: Phase 2
+## Current Phase: Phase 3
 
 ---
 
@@ -38,11 +38,11 @@
 - Like/dislike on comments
 
 **Exit Criteria**:
-- [ ] Logged-in user can post a text comment
-- [ ] Comment appears in the thread immediately
-- [ ] User can reply to any comment (nested)
-- [ ] Comments persist in Supabase DB
-- [ ] Like count works
+- [x] Logged-in user can post a text comment
+- [x] Comment appears in the thread immediately
+- [x] User can reply to any comment (nested)
+- [x] Comments persist in Supabase DB
+- [x] Like count works
 
 ---
 
