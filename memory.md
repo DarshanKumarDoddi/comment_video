@@ -18,12 +18,16 @@
 | 2026-07-22 | Phase 2 — Watch page updated with threaded rendering + author names |
 | 2026-07-22 | Phase 2 — CSS for reply composer, timestamp badges, indent styling |
 | 2026-07-22 | CI/CD — Vercel config, GitHub Actions workflow, .gitignore |
+| 2026-07-22 | Phase 3 — Cloudinary client service for video uploads |
+| 2026-07-22 | Phase 3 — Video upload endpoint + video_url in comment model |
+| 2026-07-22 | Phase 3 — Video comment UI: upload in composer + reply form |
+| 2026-07-22 | Phase 3 — Inline video playback in comment threads |
 
 ## In Progress
 
 | Item | File/Module | Status |
 |---|---|---|
-| Phase 2 — Text Comments | Backend + Frontend | Code complete, pushed to GitHub |
+| Phase 3 — Video Comments | Backend + Frontend | Code complete, pushed to GitHub |
 | Supabase DB setup | Pending | User needs to create project + tables |
 | Cloudinary setup | Pending | User needs to create account |
 
@@ -31,9 +35,6 @@
 
 | Item | Details |
 |---|---|
-| Auth method not decided | Email/password vs social login — deferred |
-| Video comment length limit | Not confirmed — 30s? 60s? |
-| Who can add videos | Currently admin only — confirm if users can also add |
 | Supabase project | Needs to be created and keys generated |
 | Cloudinary account | Needs to be created and keys generated |
 

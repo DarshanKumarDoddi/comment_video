@@ -1,6 +1,6 @@
 # Project Phases
 
-## Current Phase: Phase 3
+## Current Phase: Phase 4
 
 ---
 
@@ -57,10 +57,10 @@
 - Thumbnail/preview for video comments
 
 **Exit Criteria**:
-- [ ] User can upload a video clip as a comment
-- [ ] Video comment plays inline in the thread
-- [ ] Video stored in Cloudinary, URL saved in DB
-- [ ] Works for both top-level and reply comments
+- [x] User can upload a video clip as a comment
+- [x] Video comment plays inline in the thread
+- [x] Video stored in Cloudinary, URL saved in DB
+- [x] Works for both top-level and reply comments
 
 ---
 
