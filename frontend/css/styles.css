@@ -433,3 +433,66 @@ a:hover {
 .hidden {
   display: none !important;
 }
+
+/* Reply Composer */
+.reply-composer {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: var(--bg);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.reply-composer textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  resize: vertical;
+  font-family: 'Inter', sans-serif;
+}
+
+.reply-composer textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.reply-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* Comment Timestamp */
+.comment-timestamp {
+  font-size: 12px;
+  color: var(--primary);
+  cursor: pointer;
+  background-color: var(--surface);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.comment-timestamp:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Comment count */
+.comment-section h2 span {
+  font-weight: 400;
+}
+
+/* Reply indent line */
+.comment-item.reply {
+  position: relative;
+}
