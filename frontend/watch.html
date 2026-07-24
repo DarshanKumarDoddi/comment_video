@@ -27,7 +27,9 @@
         </div>
 
         <div class="comment-section">
-          <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">Comments</h2>
+          <h2 style="font-size: 18px; font-weight: 600; margin-bottom: 16px;">
+            Comments <span id="comment-count" style="font-weight: 400; color: var(--text-secondary); font-size: 14px;"></span>
+          </h2>
 
           <div id="comment-composer" class="comment-composer hidden">
             <div class="form-group">
@@ -55,11 +57,13 @@
   <script src="/js/theme.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/utils.js"></script>
+  <script src="/js/comments.js"></script>
   <script>
     initTheme();
     updateNavAuth();
 
     const videoId = new URLSearchParams(window.location.search).get('id');
+    const currentVideoId = videoId;
     let player = null;
     let videoData = null;
 
@@ -71,7 +75,6 @@
       document.getElementById('comment-composer').classList.remove('hidden');
     }
 
-    // YouTube IFrame API
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
@@ -102,36 +105,23 @@
         const comments = await apiGet(`/videos/${videoId}/comments`);
         const list = document.getElementById('comments-list');
         const empty = document.getElementById('comments-empty');
+        const countEl = document.getElementById('comment-count');
 
         if (comments.length === 0) {
+          list.innerHTML = '';
           empty.classList.remove('hidden');
+          countEl.textContent = '';
           return;
         }
 
-        list.innerHTML = renderComments(comments);
+        empty.classList.add('hidden');
+        countEl.textContent = `(${comments.length})`;
+
+        const tree = buildCommentTree(comments);
+        list.innerHTML = renderCommentTree(tree);
       } catch (err) {
         showToast(err.message, 'error');
       }
-    }
-
-    function renderComments(comments) {
-      return comments.map(c => `
-        <div class="comment-item">
-          <div class="comment-header">
-            <div class="comment-avatar">${(c.author_name || 'U')[0].toUpperCase()}</div>
-            <span class="comment-author">${c.author_name || 'User'}</span>
-            <span class="comment-time">${formatDate(c.created_at)}</span>
-            ${c.timestamp_seconds != null ? `<span style="font-size:12px; color:var(--primary); cursor:pointer;" onclick="seekTo(${c.timestamp_seconds})">${formatTime(c.timestamp_seconds)}</span>` : ''}
-          </div>
-          <div class="comment-body">${c.text_content || ''}</div>
-        </div>
-      `).join('');
-    }
-
-    function formatTime(seconds) {
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
     function seekTo(seconds) {
@@ -160,6 +150,7 @@
           timestamp_seconds: timestamp,
         });
         document.getElementById('comment-text').value = '';
+        document.getElementById('pin-timestamp').checked = false;
         showToast('Comment posted!');
         loadComments();
       } catch (err) {
