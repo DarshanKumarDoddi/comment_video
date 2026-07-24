@@ -35,6 +35,13 @@
             <div class="form-group">
               <textarea id="comment-text" rows="3" placeholder="Add a comment..."></textarea>
             </div>
+            <div id="video-upload-area" style="margin-bottom: 8px;">
+              <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                📹 Attach Video
+                <input type="file" accept="video/*" id="comment-video-input" style="display:none;" onchange="handleCommentVideo(this)">
+              </label>
+              <span id="video-upload-status" style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;"></span>
+            </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <button class="btn btn-primary" onclick="postComment()">Comment</button>
               <label style="font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 4px;">
@@ -66,6 +73,7 @@
     const youtubeVideoId = new URLSearchParams(window.location.search).get('yt');
     const currentVideoId = videoId;
     let currentYouTubeId = null;
+    let pendingCommentVideo = null;
 
     if (!videoId) {
       window.location.href = '/';
@@ -73,6 +81,24 @@
 
     if (isLoggedIn()) {
       document.getElementById('comment-composer').classList.remove('hidden');
+    }
+
+    function handleCommentVideo(input) {
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('video/')) {
+        showToast('Please select a video file', 'error');
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        showToast('Video too large (max 50MB)', 'error');
+        return;
+      }
+
+      pendingCommentVideo = file;
+      document.getElementById('video-upload-status').textContent = file.name;
     }
 
     async function loadVideo() {
@@ -125,9 +151,24 @@
 
     async function postComment() {
       const text = document.getElementById('comment-text').value.trim();
-      if (!text) {
+      if (!text && !pendingCommentVideo) {
         showToast('Comment cannot be empty', 'error');
         return;
+      }
+
+      let videoUrl = null;
+      if (pendingCommentVideo) {
+        document.getElementById('video-upload-status').textContent = 'Uploading...';
+        try {
+          const formData = new FormData();
+          formData.append('file', pendingCommentVideo);
+          const uploadData = await apiUpload('/upload/video-comment', formData);
+          videoUrl = uploadData.url;
+        } catch (err) {
+          showToast('Video upload failed: ' + err.message, 'error');
+          document.getElementById('video-upload-status').textContent = 'Upload failed';
+          return;
+        }
       }
 
       const pinTimestamp = document.getElementById('pin-timestamp').checked;
@@ -136,11 +177,15 @@
       try {
         await apiPost('/comments', {
           video_id: videoId,
-          text_content: text,
+          text_content: text || null,
+          video_url: videoUrl,
           timestamp_seconds: timestamp,
         });
         document.getElementById('comment-text').value = '';
         document.getElementById('pin-timestamp').checked = false;
+        document.getElementById('comment-video-input').value = '';
+        document.getElementById('video-upload-status').textContent = '';
+        pendingCommentVideo = null;
         showToast('Comment posted!');
         loadComments();
       } catch (err) {
