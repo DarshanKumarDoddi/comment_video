@@ -496,3 +496,21 @@ a:hover {
 .comment-item.reply {
   position: relative;
 }
+
+/* Video Comment */
+.comment-video {
+  margin: 8px 0;
+  max-width: 400px;
+}
+
+.comment-video video {
+  width: 100%;
+  border-radius: 8px;
+  background-color: #000;
+}
+
+/* Reply Video Upload */
+.reply-video-upload {
+  display: flex;
+  align-items: center;
+}
