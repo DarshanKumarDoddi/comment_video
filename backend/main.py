@@ -3,7 +3,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from routers import videos, auth, comments
 
-app = FastAPI(title="CommentVideo API", version="0.1.0")
+app = FastAPI(title="CommentVideo API", version="0.1.0", docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    redoc_url="/api/redoc")
 
 app.add_middleware(
     CORSMiddleware,
