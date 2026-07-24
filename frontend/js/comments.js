@@ -31,6 +31,20 @@ function renderCommentTree(comments, depth = 0) {
       timestampHtml = `<span class="comment-timestamp" onclick="seekTo(${c.timestamp_seconds})">${m}:${s.toString().padStart(2, '0')}</span>`;
     }
 
+    let contentHtml = '';
+    if (c.video_url) {
+      contentHtml = `
+        <div class="comment-video">
+          <video controls preload="metadata" src="${escapeHtml(c.video_url)}"></video>
+        </div>
+      `;
+      if (c.text_content) {
+        contentHtml += `<div class="comment-body">${escapeHtml(c.text_content)}</div>`;
+      }
+    } else if (c.text_content) {
+      contentHtml = `<div class="comment-body">${escapeHtml(c.text_content)}</div>`;
+    }
+
     const repliesHtml = c.replies && c.replies.length > 0
       ? `<div class="comment-replies">${renderCommentTree(c.replies, depth + 1)}</div>`
       : '';
@@ -43,7 +57,7 @@ function renderCommentTree(comments, depth = 0) {
           <span class="comment-time">${timeAgo}</span>
           ${timestampHtml}
         </div>
-        <div class="comment-body">${escapeHtml(c.text_content || '')}</div>
+        ${contentHtml}
         <div class="comment-actions">
           <button onclick="likeComment('${c.id}', this)">👍 <span>${c.likes_count || 0}</span></button>
           <button onclick="showReplyForm('${c.id}')">Reply</button>
@@ -51,6 +65,13 @@ function renderCommentTree(comments, depth = 0) {
         <div class="reply-form-container" id="reply-form-${c.id}" style="display:none;">
           <div class="reply-composer">
             <textarea id="reply-text-${c.id}" rows="2" placeholder="Write a reply..."></textarea>
+            <div class="reply-video-upload" style="margin-top: 6px;">
+              <label class="btn btn-secondary btn-sm" style="cursor: pointer;">
+                📹 Attach Video
+                <input type="file" accept="video/*" style="display:none;" onchange="handleReplyVideo(this, '${c.id}')">
+              </label>
+              <span id="reply-video-status-${c.id}" style="font-size: 12px; color: var(--text-secondary); margin-left: 8px;"></span>
+            </div>
             <div class="reply-actions">
               <button class="btn btn-primary btn-sm" onclick="postReply('${c.id}')">Reply</button>
               <button class="btn btn-secondary btn-sm" onclick="hideReplyForm('${c.id}')">Cancel</button>
@@ -95,22 +116,64 @@ function hideReplyForm(commentId) {
   if (form) form.style.display = 'none';
 }
 
+const pendingReplyVideos = {};
+
+function handleReplyVideo(input, commentId) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('video/')) {
+    showToast('Please select a video file', 'error');
+    return;
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    showToast('Video too large (max 50MB)', 'error');
+    return;
+  }
+
+  const status = document.getElementById(`reply-video-status-${commentId}`);
+  if (status) status.textContent = file.name;
+
+  pendingReplyVideos[commentId] = file;
+}
+
 async function postReply(parentId) {
   const textarea = document.getElementById(`reply-text-${parentId}`);
   const text = textarea.value.trim();
+  const videoFile = pendingReplyVideos[parentId];
 
-  if (!text) {
+  if (!text && !videoFile) {
     showToast('Reply cannot be empty', 'error');
     return;
+  }
+
+  let videoUrl = null;
+  if (videoFile) {
+    const status = document.getElementById(`reply-video-status-${parentId}`);
+    if (status) status.textContent = 'Uploading...';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', videoFile);
+      const uploadData = await apiUpload('/upload/video-comment', formData);
+      videoUrl = uploadData.url;
+    } catch (err) {
+      showToast('Video upload failed: ' + err.message, 'error');
+      if (status) status.textContent = 'Upload failed';
+      return;
+    }
   }
 
   try {
     await apiPost('/comments', {
       video_id: currentVideoId,
-      text_content: text,
+      text_content: text || null,
+      video_url: videoUrl,
       parent_comment_id: parentId,
     });
     textarea.value = '';
+    delete pendingReplyVideos[parentId];
     hideReplyForm(parentId);
     showToast('Reply posted!');
     await loadComments();
