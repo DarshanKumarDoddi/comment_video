@@ -13,6 +13,20 @@ def get_user_from_token(token: str) -> dict | None:
     return {"id": result.user.id, "email": result.user.email}
 
 
+def get_username(user_id: str) -> str:
+    supabase = get_supabase()
+    result = (
+        supabase.table("users")
+        .select("username")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if result.data and result.data.get("username"):
+        return result.data["username"]
+    return "User"
+
+
 @router.post("", response_model=CommentResponse)
 def create_comment(comment: CommentCreate, authorization: str = Header(None)):
     if not authorization:
@@ -41,7 +55,9 @@ def create_comment(comment: CommentCreate, authorization: str = Header(None)):
     if not result.data:
         raise HTTPException(status_code=500, detail="Failed to create comment")
 
-    return CommentResponse(**result.data[0])
+    created = result.data[0]
+    created["author_name"] = get_username(user["id"])
+    return CommentResponse(**created)
 
 
 @router.get("/{video_id}/comments", response_model=list[CommentResponse])
@@ -51,8 +67,39 @@ def get_comments(video_id: str):
         supabase.table("comments")
         .select("*")
         .eq("video_id", video_id)
-        .is_("parent_comment_id", "null")
         .order("created_at", desc=True)
         .execute()
     )
-    return [CommentResponse(**c) for c in result.data]
+
+    comments = []
+    for c in result.data:
+        if c.get("author_id"):
+            c["author_name"] = get_username(c["author_id"])
+        else:
+            c["author_name"] = "User"
+        comments.append(CommentResponse(**c))
+
+    return comments
+
+
+@router.post("/{comment_id}/like")
+def like_comment(comment_id: str):
+    supabase = get_supabase()
+
+    current = (
+        supabase.table("comments")
+        .select("likes_count")
+        .eq("id", comment_id)
+        .single()
+        .execute()
+    )
+
+    if not current.data:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    new_count = (current.data.get("likes_count") or 0) + 1
+    supabase.table("comments").update({"likes_count": new_count}).eq(
+        "id", comment_id
+    ).execute()
+
+    return {"likes_count": new_count}
